@@ -14,6 +14,13 @@
     }
     // Delay untuk animasi logo: instan jika ada filter/search, atau lebih cepat untuk load pertama
     $delay = request()->has('category') || request()->has('q') ? 0 : 800;
+
+    $marqueeTexts = [
+        'SENSASI BARU SETIAP GIGITAN',
+        'PROMO SPESIAL HARI INI',
+        'KELEZATAN YANG BIKIN KANGEN',
+        'CITA RASA TAK TERTANDINGI',
+    ];
 @endphp
 @section('content')
     <div x-data="{
@@ -41,8 +48,9 @@
         checkAndFollowLink(event) {
             if (!this.isOrderOptionSet) {
                 event.preventDefault();
-                this.showNotification('Pilih Tipe Pesanan & Meja Dahulu!', 'error');
-                document.getElementById('order-options').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                this.showNotification('Pilih Tipe Pesanan Terlebih Dahulu', 'error');
+                this.searchOpen = false; // Tutup overlay pencarian
+                document.getElementById('order-options-anchor').scrollIntoView({ behavior: 'smooth', block: 'start' });
             } else {
                 this.loading = true;
                 window.location.href = event.currentTarget.href;
@@ -51,17 +59,26 @@
         checkAndOpenModal(product) {
             if (!this.isOrderOptionSet) {
                 this.showNotification('Pilih Tipe Pesanan & Meja Dahulu!', 'error');
-                document.getElementById('order-options').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                this.searchOpen = false; // Tutup overlay pencarian
+                document.getElementById('order-options-anchor').scrollIntoView({ behavior: 'smooth', block: 'start' });
                 return;
             }
             this.openModalWithProduct(product);
         },
         init() {
-            // Muat riwayat pencarian dari LocalStorage saat komponen dimuat
             this.recentSearches = JSON.parse(localStorage.getItem('recentSearches') || '[]');
-            // Atur animasi tampil konten
             setTimeout(() => this.showContent = true, {{ $delay }});
+    
+            // ✅ Tambahan listener notifikasi
+            window.addEventListener('show-notification', (e) => {
+                if (this.showNotification) {
+                    this.showNotification(e.detail.message, e.detail.type || 'success');
+                } else {
+                    console.warn('showNotification is not defined.');
+                }
+            });
         },
+    
         // Fungsi untuk menambah kata kunci baru ke riwayat
         addSearchTerm(term) {
             if (!term || term.trim() === '') return;
@@ -87,13 +104,12 @@
         openModalWithProduct(product) {
             this.selectedProduct = product;
             this.modalQuantity = 1;
-            this.modalSelectedVariant = null; // Reset pilihan varian
-            // Jika produk punya varian, otomatis pilih varian pertama sebagai default
+            this.modalSelectedVariant = null;
             if (product.variants && product.variants.length > 0) {
                 this.modalSelectedVariant = product.variants[0];
             }
             this.modalOpen = true;
-            this.searchOpen = false;
+            this.searchOpen = false; // Pastikan overlay pencarian tertutup saat modal terbuka
         },
         addToCart() {
             this.loading = true;
@@ -192,7 +208,7 @@
                                     viewBox="0 0 20 20" fill="currentColor">
                                     <path fill-rule="evenodd"
                                         d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817
-                                                                                                                                                                                                                                                                                                         4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
                                         clip-rule="evenodd" />
                                 </svg>
                             </span>
@@ -203,6 +219,7 @@
                         </div>
                     </div>
                 </section>
+                <div id="order-options-anchor" class="relative -top-24"></div>
                 {{-- Ganti total section "Tipe Pesanan Anda" dengan ini --}}
                 <section id="order-options" class="mb-12">
                     <div class="bg-white p-6 rounded-2xl shadow-sm">
@@ -246,9 +263,48 @@
                         @endif
                     </div>
                 </section>
+            </div>
 
-                {{-- Ganti seluruh section promo Anda dengan ini --}}
+            <section class="mb-12">
+                {{-- Wadah luar yang memotong (overflow-hidden) dan memiliki background --}}
+                <div class="bg-gradient-to-r from-orange-500 to-orange-600 py-3 flex overflow-hidden">
+                    {{-- Blok Teks 1 (Yang akan dianimasikan) --}}
+                    <div class="marquee-track flex-shrink-0 flex items-center">
+                        @foreach ($marqueeTexts as $text)
+                            <div class="flex items-center flex-shrink-0 mx-8">
+                                <span class="text-2xl md:text-3xl font-extrabold text-white uppercase tracking-wider">
+                                    {{ $text }}
+                                </span>
+                                <svg class="w-8 h-8 mx-6 text-amber-300" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783-.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.783-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z">
+                                    </path>
+                                </svg>
+                            </div>
+                        @endforeach
+                    </div>
+                    {{-- Blok Teks 2 (Duplikat persis untuk efek loop tanpa henti) --}}
+                    <div class="marquee-track flex-shrink-0 flex items-center" aria-hidden="true">
+                        @foreach ($marqueeTexts as $text)
+                            <div class="flex items-center flex-shrink-0 mx-8">
+                                <span class="text-2xl md:text-3xl font-extrabold text-white uppercase tracking-wider">
+                                    {{ $text }}
+                                </span>
+                                <svg class="w-8 h-8 mx-6 text-amber-300" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783-.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.783-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z">
+                                    </path>
+                                </svg>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            </section>
+            {{-- Ganti seluruh section promo Anda dengan ini --}}
 
+            <div class="container mx-auto px-6 py-8">
                 @if ($promotions->isNotEmpty())
                     <section class="mb-12">
                         <h2 class="text-2xl md:text-3xl font-bold text-slate-800 mb-4 px-4 md:px-0">Promo Spesial Untukmu
@@ -260,18 +316,20 @@
                                         {{-- FIX: Menggunakan tag <a> untuk mengarah ke halaman detail --}}
                                         <a href="{{ route('promo.show', $promo) }}" class="block w-full text-left"
                                             @click="checkAndFollowLink($event)">
-                                            <div class="relative">
+                                            <div class="relative rounded-t-2xl overflow-hidden">
                                                 <img src="{{ asset('storage/' . $promo->image_path) }}"
                                                     alt="{{ $promo->title }}"
                                                     class="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105">
-                                                <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent">
+
+                                                {{-- Overlay dan Judul di atas gambar --}}
+                                                <div
+                                                    class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent">
                                                 </div>
                                                 <div class="absolute bottom-0 left-0 p-4">
                                                     <h3 class="text-white text-xl font-bold">{{ $promo->title }}</h3>
                                                 </div>
                                             </div>
                                             <div class="p-4 bg-white">
-                                                <p class="text-sm text-slate-600">{{ $promo->description }}</p>
                                                 <div class="text-right mt-2">
                                                     @php
                                                         $promoData = is_string($promo->promo_data)
@@ -325,7 +383,7 @@
                             <span
                                 class="bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold animate-pulse">HOT</span>
                         </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        <div class="grid grid-cols-2 gap-x-4 gap-y-8 md:grid-cols-2 lg:grid-cols-3 md:gap-8">
                             @foreach ($bestSellers as $product)
                                 @include('partials.product-card', ['product' => $product])
                             @endforeach
@@ -335,7 +393,7 @@
                 {{-- Produk Utama / Hasil Pencarian --}}
                 <section>
                     <h3 class="text-2xl font-bold text-slate-800 mb-6">{{ $sectionTitle }}</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <div class="grid grid-cols-2 gap-x-4 gap-y-8 md:grid-cols-2 lg:grid-cols-3 md:gap-8">
                         @forelse ($products as $product)
                             @include('partials.product-card', ['product' => $product])
                         @empty
@@ -345,7 +403,7 @@
                                         fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round"
                                             d="M21 21l-5.197-5.197m0 0A7.5 7.5 0
-                                                                                                                                                                                                                                                                                                             105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
                                     </svg>
                                     <h3 class="mt-4 text-xl font-semibold text-slate-800">Produk Tidak Ditemukan</h3>
                                     <p class="mt-2 text-base text-slate-500">Oops! Kami tidak dapat menemukan produk yang
@@ -485,8 +543,8 @@
                             <svg class="h-6 w-6 text-slate-400" viewBox="0 0 20 20" fill="currentColor">
                                 <path fill-rule="evenodd"
                                     d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0
-                                                                                                                                                                                                                                                                                                     1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6
-                                                                                                                                                                                                                                                                                                     6 0 012 8z"
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             6 0 012 8z"
                                     clip-rule="evenodd" />
                             </svg>
                         </span>
@@ -494,7 +552,7 @@
                             x-init="$watch('searchOpen', v => v && $nextTick(() => $refs.searchInput.focus()))"
                             class="w-full bg-white rounded-full py-4 pl-12 pr-10 border border-slate-300 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent shadow-sm"
                             placeholder="Ketik lalu tekan Enter..." autocomplete="off">
-                        <button type="button" x-show="query.length > 0" @click="query = ''; $el.form.submit()"
+                        <button type="button" x-show="query.length > 0" @click="query = ''; $refs.searchInput.focus()"
                             class="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-500 hover:text-slate-800">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
                                 stroke="currentColor" stroke-width="2">
@@ -529,15 +587,16 @@
                             @foreach ($popularProducts as $product)
                                 <div
                                     class="flex items-center p-3 transition-colors duration-200 rounded-xl hover:bg-slate-100">
-                                    {{-- 1. Wadah Gambar Diperbaiki --}}
-                                    <a href="{{ route('product.show', $product->slug) }}" class="flex-shrink-0">
+                                    <a href="{{ route('product.show', $product->slug) }}"
+                                        @click.prevent="checkAndFollowLink($event)" class="flex-shrink-0">
                                         <img src="{{ $product->image ? asset('storage/' . $product->image) : asset('images/icon-all.png') }}"
                                             alt="{{ $product->name }}"
                                             class="w-20 h-20 object-contain rounded-lg border bg-white p-1 mr-4">
                                     </a>
                                     <div class="flex-grow">
-                                        <a href="{{ route('product.show', $product->slug) }}">
-                                            <h4 class="font-bold text-slate-800 hover:text-orange-600 transition-colors">
+                                        <a href="{{ route('product.show', $product->slug) }}"
+                                            @click.prevent="checkAndFollowLink($event)">
+                                            <h4 class="font-bold text-slate-800 transition-colors">
                                                 {{ $product->name }}</h4>
                                         </a>
                                         <div class="flex items-center text-sm text-gray-500 mt-1">
@@ -556,7 +615,7 @@
                                     </div>
                                     <div class="flex-shrink-0">
                                         <button type="button"
-                                            @click.stop.prevent="openModalWithProduct({{ $product->toJson() }})"
+                                            @click.stop.prevent="checkAndOpenModal({{ $product->toJson() }})"
                                             class="bg-orange-500 text-white rounded-full h-10 w-10 flex items-center justify-center transform transition hover:bg-orange-600 hover:scale-110 shadow-sm">
                                             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24"
                                                 stroke="currentColor" stroke-width="3">
@@ -592,6 +651,20 @@
             /* IE and Edge */
             scrollbar-width: none;
             /* Firefox */
+        }
+
+        .marquee-track {
+            animation: marquee 20s linear infinite;
+        }
+
+        @keyframes marquee {
+            from {
+                transform: translateX(0);
+            }
+
+            to {
+                transform: translateX(-100%);
+            }
         }
     </style>
 @endsection

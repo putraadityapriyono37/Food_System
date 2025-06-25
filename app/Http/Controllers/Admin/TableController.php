@@ -9,16 +9,16 @@ use Illuminate\Http\Request;
 class TableController extends Controller
 {
     /**
-     * Menampilkan daftar semua meja.
+     * Display a listing of the resource.
      */
     public function index()
     {
-        $tables = Table::latest()->paginate(10);
+        $tables = Table::orderBy('name')->get();
         return view('admin.tables.index', compact('tables'));
     }
 
     /**
-     * Menampilkan form untuk membuat meja baru.
+     * Show the form for creating a new resource.
      */
     public function create()
     {
@@ -26,23 +26,22 @@ class TableController extends Controller
     }
 
     /**
-     * Menyimpan meja baru ke database.
+     * Store a newly created resource in storage.
      */
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:tables,name',
-            'status' => 'required|in:available,occupied',
+            'name' => 'required|string|unique:tables,name',
         ]);
 
         Table::create($validated);
 
-        return redirect()->route('admin.tables.index')->with('success', 'Meja baru berhasil ditambahkan!');
+        return redirect()->route('admin.tables.index')->with('success', 'Meja baru berhasil ditambahkan.');
     }
 
 
     /**
-     * Menampilkan form untuk mengedit meja.
+     * Show the form for editing the specified resource.
      */
     public function edit(Table $table)
     {
@@ -50,32 +49,35 @@ class TableController extends Controller
     }
 
     /**
-     * Mengupdate data meja di database.
+     * Update the specified resource in storage.
      */
     public function update(Request $request, Table $table)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:tables,name,' . $table->id,
-            'status' => 'required|in:available,occupied',
+            'name' => 'required|string|unique:tables,name,' . $table->id,
+            'status' => 'required|in:available,occupied,unavailable',
         ]);
 
         $table->update($validated);
 
-        return redirect()->route('admin.tables.index')->with('success', 'Data meja berhasil diperbarui!');
+        return redirect()->route('admin.tables.index')->with('success', 'Data meja berhasil diperbarui.');
     }
 
     /**
-     * Menghapus meja dari database.
+     * FIX: Tambahkan pengecekan sebelum menghapus.
+     * Remove the specified resource from storage.
      */
     public function destroy(Table $table)
     {
-        // Tambahkan logika untuk memeriksa jika meja sedang digunakan oleh order (opsional)
-        if ($table->orders()->whereNotIn('status', ['completed', 'cancelled'])->exists()) {
-            return back()->with('error', 'Meja tidak bisa dihapus karena sedang digunakan.');
+        // Cek apakah meja ini memiliki relasi dengan pesanan apa pun.
+        if ($table->orders()->exists()) {
+            // Jika ya, kembalikan dengan pesan error.
+            return back()->with('error', 'Tidak dapat menghapus meja karena sudah memiliki riwayat pesanan.');
         }
 
+        // Jika tidak ada pesanan terkait, lanjutkan penghapusan.
         $table->delete();
 
-        return redirect()->route('admin.tables.index')->with('success', 'Meja berhasil dihapus!');
+        return redirect()->route('admin.tables.index')->with('success', 'Meja berhasil dihapus.');
     }
 }

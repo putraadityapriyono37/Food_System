@@ -12,7 +12,6 @@
 <header class="bg-slate-50/80 backdrop-blur-lg sticky top-0 z-30">
     @if ($isTrueHomepage)
         {{-- Homepage: ikon keranjang di kanan --}}
-        {{-- Kita juga perlu menambahkan listener di sini jika ingin update dari homepage --}}
         <div class="container mx-auto flex justify-end items-center px-6" style="height:80px;" x-data="{ cartCount: {{ count((array) session('cart')) }} }"
             @cart-updated.window="cartCount = $event.detail.count">
             <a href="{{ route('cart.index') }}" class="relative transform hover:scale-110 transition-transform">
@@ -42,7 +41,6 @@
         </div>
     @else
         {{-- Halaman lain: back, logo, dan ikon keranjang --}}
-        {{-- FIX: Event listener ditambahkan di sini --}}
         <div class="container mx-auto flex justify-between items-center px-4 py-4 border-b border-slate-200"
             x-data="{ cartCount: {{ count((array) session('cart')) }} }" @cart-updated.window="cartCount = $event.detail.count">
 
@@ -94,7 +92,16 @@
             <span>
                 Tipe Pesanan:
                 <span class="font-bold capitalize">
-                    {{ str_replace('_', ' ', session('order_type')) }}
+                    {{-- FIX: Logika diubah untuk menampilkan teks yang lebih ramah pengguna --}}
+                    @if (session('order_type') == 'dine_in')
+                        Makan di Tempat
+                    @elseif(session('order_type') == 'take_away')
+                        Bawa Pulang
+                    @else
+                        {{-- Fallback jika ada tipe lain --}}
+                        {{ str_replace('_', ' ', session('order_type')) }}
+                    @endif
+
                     @if (session('table_id') && session('order_type') == 'dine_in')
                         - Meja {{ App\Models\Table::find(session('table_id'))->name ?? '' }}
                     @endif

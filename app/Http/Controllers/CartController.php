@@ -122,6 +122,17 @@ class CartController extends Controller
         return back()->with('error', 'Item tidak ditemukan.');
     }
 
+    public function setCustomerName(Request $request)
+    {
+        $validated = $request->validate([
+            'customer_name' => 'nullable|string|max:255'
+        ]);
+
+        session(['customer_name' => $validated['customer_name'] ?? null]);
+
+        return response()->json(['success' => true]);
+    }
+
     /**
      * Menambahkan paket promo ke keranjang.
      */

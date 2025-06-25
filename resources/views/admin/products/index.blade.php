@@ -61,13 +61,14 @@
                                 <div class="flex items-center justify-center space-x-4">
                                     <a href="{{ route('admin.products.edit', $product) }}"
                                         class="text-orange-600 hover:underline font-semibold">Edit</a>
-                                    <form action="{{ route('admin.products.destroy', $product) }}" method="POST"
-                                        onsubmit="return confirm('Anda yakin ingin menghapus produk ini?');">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit"
-                                            class="text-red-500 hover:underline font-semibold">Hapus</button>
-                                    </form>
+                                    <button type="button"
+                                        @click="$dispatch('open-delete-modal', { 
+            action: '{{ route('admin.products.destroy', $product) }}',
+            message: 'Menghapus produk ini akan menghapus semua variannya. Yakin?'
+        })"
+                                        class="text-red-500 hover:underline font-semibold">
+                                        Hapus
+                                    </button>
                                 </div>
                             </td>
                         </tr>

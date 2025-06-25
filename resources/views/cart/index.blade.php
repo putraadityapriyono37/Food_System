@@ -3,10 +3,33 @@
 @section('title', 'Keranjang Belanja')
 
 @section('content')
+    {{-- FIX: Logika Alpine.js di-upgrade untuk auto-save --}}
     <div class="font-sans" x-data="{
         customer_name: '{{ old('customer_name', session('customer_name', '')) }}',
-        paymentModalOpen: false
-    }">
+        paymentModalOpen: false,
+        debounce: null,
+    
+        // Fungsi init akan dijalankan saat komponen dimuat
+        init() {
+            // $watch akan memantau perubahan pada properti 'customer_name'
+            this.$watch('customer_name', (value) => {
+                // Hapus timer sebelumnya agar tidak menumpuk
+                clearTimeout(this.debounce);
+    
+                // Atur timer baru. Fungsi akan dijalankan setelah 500ms pengguna berhenti mengetik.
+                this.debounce = setTimeout(() => {
+                    fetch('{{ route('cart.setCustomerName') }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        },
+                        body: JSON.stringify({ customer_name: value })
+                    });
+                }, 500);
+            });
+        }
+    }" x-init="init()">
         @include('partials.header', ['backUrl' => route('home')])
 
         <div class="container mx-auto px-4 sm:px-6 py-8">

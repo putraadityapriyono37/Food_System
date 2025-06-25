@@ -37,6 +37,7 @@ Route::post('/keranjang/update/{cartItemId}', [CartController::class, 'update'])
 Route::post('/keranjang/hapus/{cartItemId}', [CartController::class, 'remove'])->name('cart.remove');
 Route::post('/keranjang/tambah-bundel/{promotion}', [CartController::class, 'addBundle'])->name('cart.addBundle');
 
+Route::post('/keranjang/set-customer', [CartController::class, 'setCustomerName'])->name('cart.setCustomerName');
 Route::post('/set-order-options', [CartController::class, 'setOrderOptions'])->name('cart.setOrderOptions');
 Route::get('/promo/{promotion}', [PublicPromotionController::class, 'show'])->name('promo.show');
 
