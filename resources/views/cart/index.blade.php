@@ -9,14 +9,17 @@
         paymentModalOpen: false,
         debounce: null,
     
-        // Fungsi init akan dijalankan saat komponen dimuat
-        init() {
-            // $watch akan memantau perubahan pada properti 'customer_name'
-            this.$watch('customer_name', (value) => {
-                // Hapus timer sebelumnya agar tidak menumpuk
-                clearTimeout(this.debounce);
+        notification: { show: false, message: '', type: 'success' },
+        showNotification(message, type = 'success') {
+            this.notification.message = message;
+            this.notification.type = type;
+            this.notification.show = true;
+            setTimeout(() => { this.notification.show = false }, 4000);
+        },
     
-                // Atur timer baru. Fungsi akan dijalankan setelah 500ms pengguna berhenti mengetik.
+        init() {
+            this.$watch('customer_name', (value) => {
+                clearTimeout(this.debounce);
                 this.debounce = setTimeout(() => {
                     fetch('{{ route('cart.setCustomerName') }}', {
                         method: 'POST',
@@ -28,6 +31,15 @@
                     });
                 }, 500);
             });
+        },
+    
+        checkAndOpenPaymentModal() {
+            if (this.customer_name.trim() === '') {
+                this.showNotification('Harap isi nama pemesan dahulu!', 'error');
+                this.$refs.customerNameInput.focus();
+            } else {
+                this.paymentModalOpen = true;
+            }
         }
     }" x-init="init()">
         @include('partials.header', ['backUrl' => route('home')])
@@ -145,14 +157,16 @@
                 @endphp
 
                 {{-- Form Checkout --}}
-                <div x-data="{ paymentModalOpen: false }">
+                <div>
                     <form id="main-cart-form" action="{{ route('order.store') }}" method="POST">
                         @csrf
                         {{-- Nama Pemesan --}}
                         <div class="mb-6">
                             <label for="customer_name" class="block text-lg font-bold text-slate-800 mb-2">Nama
                                 Pemesan</label>
-                            <input x-model="customer_name" type="text" id="customer_name" name="customer_name"
+                            {{-- ✅ TAMBAHKAN x-ref DI SINI --}}
+                            <input x-ref="customerNameInput" x-model="customer_name" type="text" id="customer_name"
+                                name="customer_name"
                                 class="w-full bg-white rounded-lg py-3 px-4 border border-slate-300 focus:outline-none focus:ring-2 focus:ring-orange-500"
                                 placeholder="Masukkan nama Anda..." required>
                             @error('customer_name')
@@ -182,7 +196,8 @@
                                 </span>
                             </div>
 
-                            <button type="button" @click.prevent="paymentModalOpen = true"
+                            {{-- ✅ UBAH @click UNTUK MEMANGGIL FUNGSI YANG BENAR --}}
+                            <button type="button" @click.prevent="checkAndOpenPaymentModal()"
                                 class="mt-6 w-full bg-gradient-to-r from-orange-500 to-orange-600 text-white font-bold py-4 rounded-xl shadow-lg hover:from-orange-600 hover:to-orange-700 transform hover:scale-105 transition-all duration-200">
                                 <svg class="inline-block w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24"
                                     stroke="currentColor">
@@ -324,6 +339,40 @@
                 </div>
             @endif
         </div>
+        {{-- ▼▼▼ LETAKKAN HTML NOTIFIKASI DI SINI ▼▼▼ --}}
+        <div x-show="notification.show" x-cloak x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="transform translate-x-full opacity-0"
+            x-transition:enter-end="transform translate-x-0 opacity-100"
+            x-transition:leave="transition ease-in duration-300"
+            x-transition:leave-start="transform translate-x-0 opacity-100"
+            x-transition:leave-end="transform translate-x-full opacity-0"
+            class="fixed top-24 right-4 sm:right-6 w-auto z-50">
+            <div class="max-w-xs sm:max-w-sm p-0 rounded-lg shadow-lg border"
+                :class="{
+                    'bg-green-100 border-green-400 text-green-700': notification.type === 'success',
+                    'bg-red-100 border-red-400 text-red-700': notification.type === 'error',
+                    'bg-blue-100 border-blue-400 text-blue-700': notification.type === 'info'
+                }">
+                <div class="p-3 flex items-center">
+                    <div class="mr-3 flex-shrink-0">
+                        <template x-if="notification.type === 'success'"><svg class="w-6 h-6" fill="currentColor"
+                                viewBox="0 0 20 20">
+                                <path fill-rule="evenodd"
+                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                    clip-rule="evenodd"></path>
+                            </svg></template>
+                        <template x-if="notification.type === 'error'"><svg class="w-6 h-6" fill="currentColor"
+                                viewBox="0 0 20 20">
+                                <path fill-rule="evenodd"
+                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                    clip-rule="evenodd"></path>
+                            </svg></template>
+                    </div>
+                    <p x-text="notification.message" class="font-semibold text-sm"></p>
+                </div>
+            </div>
+        </div>
+        {{-- ▲▲▲ AKHIR DARI HTML NOTIFIKASI ▲▲▲ --}}
     </div>
 
     {{-- Tambahkan CSS untuk animasi tambahan --}}
